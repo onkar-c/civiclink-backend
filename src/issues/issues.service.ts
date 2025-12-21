@@ -49,8 +49,8 @@ export class IssuesService {
   userRole: string,
   userId: string,
 ) {
-  if (userRole !== 'DISPATCHER') {
-    throw new ForbiddenException('Only dispatchers can update issue status');
+  if (userRole !== 'DISPATCHER' && userRole !== 'ADMIN') {
+    throw new ForbiddenException('Only dispatchers or admins can update issue status');
   }
 
   const existing = await this.prisma.issue.findUnique({
@@ -87,8 +87,8 @@ export class IssuesService {
     query: ListIssuesQueryDto,
     userRole: string,
   ) {
-    if (userRole !== 'DISPATCHER') {
-      throw new ForbiddenException('Only dispatchers can list all issues');
+    if (userRole !== 'DISPATCHER' && userRole !== 'ADMIN') {
+      throw new ForbiddenException('Only dispatchers or admins can list all issues');
     }
 
     const page = query.page ?? 1;
@@ -150,8 +150,9 @@ export class IssuesService {
   // - The user who created the issue
   const isCreator = issue.createdByUserId === userId;
   const isDispatcher = userRole === 'DISPATCHER';
+  const isAdmin = userRole === 'Admin';
 
-  if (!isCreator && !isDispatcher) {
+  if (!isCreator && !isDispatcher && !isAdmin) {
     throw new ForbiddenException(
       'You are not allowed to view this issue history',
     );

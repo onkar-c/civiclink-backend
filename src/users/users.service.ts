@@ -2,6 +2,7 @@ import { Injectable, ConflictException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterUserDto } from './dto/register-user.dto';
+import { User, UserRole } from '@prisma/client';
 
 @Injectable()
 export class UsersService {
@@ -47,4 +48,40 @@ export class UsersService {
       where: { email },
     });
   }
+
+  async findFirstByRole(role: UserRole) {           // 👈 use UserRole here
+    return this.prisma.user.findFirst({
+      where: { role },
+    });
+  }
+
+  async updateRole(userId: string, role: UserRole) { // 👈 and here
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { role }, // type-safe now, role: UserRole
+    });
+  }
+
+
+  async findPaginated(
+  page: number,
+  pageSize: number,
+): Promise<{ users: User[]; total: number }> {
+  const skip = (page - 1) * pageSize;
+
+  const [users, total] = await this.prisma.$transaction([
+    this.prisma.user.findMany({
+      skip,
+      take: pageSize,
+      orderBy: {
+        createdAt: 'desc',
+      },
+    }),
+    this.prisma.user.count(),
+  ]);
+
+  return { users, total };
+}
+
+
 }
