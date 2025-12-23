@@ -3,6 +3,7 @@ import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../core/prisma/prisma.service';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { User, UserRole } from '@prisma/client';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 @Injectable()
 export class UsersService {
@@ -55,13 +56,16 @@ export class UsersService {
     });
   }
 
-  async updateRole(userId: string, role: UserRole) { // 👈 and here
+  async updateUserRole(userId: string, role: UserRole) {
+    const exists = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
+    if (!exists) throw new NotFoundException('User not found');
+
     return this.prisma.user.update({
       where: { id: userId },
-      data: { role }, // type-safe now, role: UserRole
+      data: { role },
+      select: { id: true, name: true, email: true, role: true, createdAt: true },
     });
   }
-
 
   async findPaginated(
   page: number,
@@ -82,6 +86,32 @@ export class UsersService {
 
   return { users, total };
 }
+
+
+
+  async listUsers(page: number, pageSize: number) {
+    if (page < 1 || pageSize < 1) throw new BadRequestException('Invalid pagination');
+
+    const skip = (page - 1) * pageSize;
+
+    const [total, items] = await Promise.all([
+      this.prisma.user.count(),
+      this.prisma.user.findMany({
+        skip,
+        take: pageSize,
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, name: true, email: true, role: true, createdAt: true },
+      }),
+    ]);
+
+    return {
+      items,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    };
+  }
 
 
 }

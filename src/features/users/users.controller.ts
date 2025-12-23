@@ -1,10 +1,16 @@
 import { Body, Controller, Post, Get, Query , Patch,
   Param,
-  HttpCode,} from '@nestjs/common';
+  HttpCode, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { UserRole } from '@prisma/client';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { GetUsersQueryDto } from './dto/get-users-query.dto';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
+import { ListUsersQueryDto } from './dto/list-users.query.dto';
+
 
 @Controller('users')
 export class UsersController {
@@ -16,41 +22,20 @@ export class UsersController {
     return user;
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @Get()
-  async getUsers(@Query() query: GetUsersQueryDto) {
+  async listUsers(@Query() query: ListUsersQueryDto) {
     const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? 50;
-
-    const { users, total } = await this.usersService.findPaginated(
-      page,
-      pageSize,
-    );
-
-    // Strip sensitive fields (passwordHash, updatedAt, etc.)
-    const safeUsers = users.map(u => ({
-      id: u.id,
-      name: u.name,
-      email: u.email,
-      role: u.role,
-      createdAt: u.createdAt,
-    }));
-
-    return {
-      data: safeUsers,
-      total,
-      page,
-      pageSize,
-    };
+    const pageSize = query.pageSize ?? 20;
+    return this.usersService.listUsers(page, pageSize);
   }
 
-
+   @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @Patch(':id/role')
-  @HttpCode(204) // No Content — matches apiPatch<void, ...>
-  async updateUserRole(
-    @Param('id') id: string,
-    @Body() body: UpdateUserRoleDto,
-  ): Promise<void> {
-    await this.usersService.updateRole(id, body.role);
-    // No response body for 204; frontend just gets success
+  async updateRole(@Param('id') id: string, @Body() dto: UpdateUserRoleDto) {
+    return this.usersService.updateUserRole(id, dto.role);
   }
+
 }

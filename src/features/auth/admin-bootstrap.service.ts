@@ -60,7 +60,7 @@ export class AdminBootstrapService implements OnModuleInit {
 
     // 3) Ensure user has ADMIN role
     if (createdAdminUser && (createdAdminUser.role !== UserRole.ADMIN)) {        // 👈 compare with enum
-      await this.usersService.updateRole(createdAdminUser.id, UserRole.ADMIN);
+      await this.usersService.updateUserRole(createdAdminUser.id, UserRole.ADMIN);
       this.logger.log(
         `User ${createdAdminUser.email} promoted to ADMIN role during bootstrap.`,
       );
