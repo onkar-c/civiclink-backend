@@ -17,13 +17,13 @@ export class AdminBootstrapService implements OnModuleInit {
 
   async onModuleInit(): Promise<void> {
     const adminEmail =
-      this.configService.get<string>('ADMIN_EMAIL') ??
+      process.env.ADMIN_EMAIL ??
       'admin@civiclink.local';
     const adminPassword =
-      this.configService.get<string>('ADMIN_PASSWORD') ??
+      process.env.ADMIN_PASSWORD ??
       'Admin123!';
     const adminName =
-      this.configService.get<string>('ADMIN_NAME') ?? 'System Admin';
+      process.env.ADMIN_NAME ?? 'System Admin';
 
     // 1) If ANY admin exists, do nothing
     const existingAdmin = await this.usersService.findFirstByRole(

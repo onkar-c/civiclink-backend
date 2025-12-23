@@ -10,12 +10,5 @@ export class AppController {
     return this.appService.getHello();
   }
 
-  @Get('health')
-  async getHealth() {
-    const userCount = await this.appService.getUserCount();
-    return {
-      status: 'ok',
-      userCount,
-    };
-  }
+  
 }
