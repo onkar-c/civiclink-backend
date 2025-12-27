@@ -2,16 +2,54 @@ import {
   Injectable,
   ForbiddenException,
   NotFoundException,
+  BadRequestException
 } from '@nestjs/common';
 import { PrismaService } from '../../core/prisma/prisma.service';
 import { CreateIssueDto, IssuePriorityDto } from './dto/create-issue.dto';
 import { UpdateIssueStatusDto } from './dto/update-issue-status.dto';
 import { ListIssuesQueryDto } from './dto/list-issues-query.dto';
+import { UserRole, IssueStatus } from '@prisma/client';
+import { UpdateIssueDto } from './dto/update-issue.dto';
 
 
 @Injectable()
 export class IssuesService {
   constructor(private readonly prisma: PrismaService) {}
+
+
+  async getIssueById(issueId: string, requesterUserId: string, requesterRole: UserRole) {
+  const issue = await this.prisma.issue.findUnique({
+    where: { id: issueId },
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      status: true,
+      priority: true,
+      latitude: true,
+      longitude: true,
+      createdAt: true,
+      updatedAt: true,
+
+      createdByUserId: true,
+
+      createdByUser: {
+        select: { id: true, name: true, email: true, role: true },
+      },
+    },
+  });
+
+  if (!issue) throw new NotFoundException('Issue not found');
+
+  const isPrivileged = requesterRole === UserRole.ADMIN || requesterRole === UserRole.DISPATCHER;
+  const isOwner = issue.createdByUserId === requesterUserId;
+
+  if (!isPrivileged && !isOwner) {
+    throw new ForbiddenException('You are not allowed to view this issue');
+  }
+
+  return issue;
+}
 
   async createIssue(userId: string, data: CreateIssueDto) {
     const priority = data.priority ?? IssuePriorityDto.MEDIUM;
@@ -176,6 +214,68 @@ export class IssuesService {
     issueId,
     events,
   };
+}
+
+async updateIssue(
+  issueId: string,
+  dto: UpdateIssueDto,
+  requesterUserId: string,
+  requesterRole: UserRole,
+) {
+  // Reject empty PATCH payloads (common API hardening)
+  const hasAnyField = Object.values(dto).some((v) => v !== undefined);
+  if (!hasAnyField) {
+    throw new BadRequestException('No fields provided for update');
+  }
+
+  const issue = await this.prisma.issue.findUnique({
+    where: { id: issueId },
+    select: {
+      id: true,
+      createdByUserId: true,
+      status: true,
+    },
+  });
+
+  if (!issue) throw new NotFoundException('Issue not found');
+
+  const isPrivileged = requesterRole === UserRole.ADMIN || requesterRole === UserRole.DISPATCHER;
+  const isOwner = issue.createdByUserId === requesterUserId;
+
+  // Citizens can only edit their own issues while still OPEN
+  if (!isPrivileged) {
+    if (!isOwner) throw new ForbiddenException('You are not allowed to update this issue');
+    if (issue.status !== IssueStatus.OPEN) {
+      throw new ForbiddenException('Issue can only be edited while status is OPEN');
+    }
+  }
+
+  // IMPORTANT: Only update allowed fields. Do not spread dto blindly if you later add fields.
+  const data = {
+    ...(dto.title !== undefined ? { title: dto.title } : {}),
+    ...(dto.description !== undefined ? { description: dto.description } : {}),
+    ...(dto.priority !== undefined ? { priority: dto.priority } : {}),
+    ...(dto.latitude !== undefined ? { latitude: dto.latitude } : {}),
+    ...(dto.longitude !== undefined ? { longitude: dto.longitude } : {}),
+    ...(dto.address !== undefined ? { address: dto.address } : {}), // remove if not in schema
+  };
+
+  return this.prisma.issue.update({
+    where: { id: issueId },
+    data,
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      status: true,
+      priority: true,
+      latitude: true,
+      longitude: true,
+      createdAt: true,
+      updatedAt: true,
+      createdByUserId: true,
+    },
+  });
 }
 
 }

@@ -8,15 +8,21 @@ import {
   Query,
   Req,
   UseGuards,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { IssuesService } from './issues.service';
 import { CreateIssueDto } from './dto/create-issue.dto';
 import { UpdateIssueStatusDto } from './dto/update-issue-status.dto';
 import { ListIssuesQueryDto } from './dto/list-issues-query.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { UpdateIssueDto } from './dto/update-issue.dto';
 
 
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 
+@ApiTags('Issues')
+@ApiBearerAuth()
 @Controller('issues')
 export class IssuesController {
   constructor(private readonly issuesService: IssuesService) {}
@@ -74,5 +80,21 @@ async getHistory(@Param('id') id: string, @Req() req: any) {
   const userId = req.user.userId;
 
   return this.issuesService.getIssueHistory(id, userId, userRole);
+}
+
+ @UseGuards(JwtAuthGuard)
+ @Get(':id')
+getIssueById(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string, @Req() req: any) {
+  return this.issuesService.getIssueById(id, req.user.userId, req.user.role);
+}
+
+@UseGuards(JwtAuthGuard)
+@Patch(':id')
+updateIssue(
+  @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+  @Body() dto: UpdateIssueDto,
+  @Req() req: any,
+) {
+  return this.issuesService.updateIssue(id, dto, req.user.userId, req.user.role);
 }
 }

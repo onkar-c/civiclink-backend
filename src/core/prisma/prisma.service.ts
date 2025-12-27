@@ -10,7 +10,6 @@ export class PrismaService
 {
   constructor() {
     const url = process.env.DATABASE_URL;
-    console.log(process.env);
   if (!url) {
     throw new Error('DATABASE_URL is not set. Create a .env file with DATABASE_URL=postgresql://user:pass@host:port/db');
   }

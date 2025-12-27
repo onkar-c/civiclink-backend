@@ -11,7 +11,10 @@ import { GetUsersQueryDto } from './dto/get-users-query.dto';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 import { ListUsersQueryDto } from './dto/list-users.query.dto';
 
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 
+@ApiTags('Users')
+@ApiBearerAuth()
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}

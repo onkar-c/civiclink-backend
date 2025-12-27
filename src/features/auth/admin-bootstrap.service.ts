@@ -24,12 +24,13 @@ export class AdminBootstrapService implements OnModuleInit {
       'Admin123!';
     const adminName =
       process.env.ADMIN_NAME ?? 'System Admin';
+       
 
     // 1) If ANY admin exists, do nothing
     const existingAdmin = await this.usersService.findFirstByRole(
       UserRole.ADMIN,                        // 👈 use enum
     );
-
+   
     if (existingAdmin) {
       this.logger.log(
         `Admin user already exists (${existingAdmin.email}), skipping bootstrap.`,
