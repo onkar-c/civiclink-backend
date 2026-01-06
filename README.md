@@ -1,98 +1,117 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# CivicLink Backend (NestJS + Prisma 7 + PostgreSQL)
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
-
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+This repository contains the **backend REST API** that powers the CivicLink **web frontend** and also supports a **future mobile app** via a clean JSON-based API.
 
 ## Description
+CivicLink is a real-world civic issue reporting and management platform where:
+- **CITIZEN** users report civic issues (potholes, broken streetlights, noise, etc.)
+- **DISPATCHER** users triage issues, update status, and coordinate resolution
+- **ADMIN** users manage users, roles, and system-level configuration
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+---
 
-## Project setup
+## Tech Stack
+- **Runtime:** Node.js
+- **Framework:** NestJS
+- **ORM:** Prisma **7**
+- **Database:** PostgreSQL
+- **Auth:** JWT (Bearer tokens) + Role-Based Access Control (RBAC)
+- **Validation:** class-validator, class-transformer
+- **API Docs:** OpenAPI / Swagger UI
 
-```bash
-$ npm install
+---
+
+## Project Architecture (Feature-Based NestJS)
+The backend follows a **feature-based module architecture**: each product capability is implemented as a feature module, while infrastructure and shared utilities are separated for maintainability and scalability.
+
+```text
+src/
+  core/                # infrastructure (e.g., Prisma)
+    prisma/
+  common/              # shared helpers (decorators, guards, utilities)
+  features/            # business capabilities
+    auth/              # register/login, JWT strategy, guards
+    users/             # user management + profile APIs
+    issues/            # issue CRUD, pagination, status/history workflows
+    health/            # system endpoints (/, /health)
+  app.module.ts        # composition root (wires feature modules)
+  main.ts              # bootstrap (pipes, CORS, Swagger)
 ```
 
-## Compile and run the project
+### Key principles
+- `AppModule` is composition-only (imports feature modules).
+- Infrastructure (Prisma) lives in `src/core`.
+- Reusable guards/decorators/utilities live in `src/common`.
 
+---
+
+## API Documentation (Swagger / OpenAPI)
+Swagger UI is available (typically in non-production environments) at:
+
+- `GET /docs`
+
+Swagger supports **JWT Bearer authentication**. After login, copy the token and click **Authorize** in Swagger UI.
+
+---
+
+## Getting Started
+
+### Prerequisites
+- Node.js (LTS recommended)
+- PostgreSQL running locally or via Docker
+- Git
+
+### Install dependencies
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+npm install
 ```
 
-## Run tests
-
+### Database Setup (Prisma 7)
+Generate Prisma client:
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npx prisma generate
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
+Apply migrations:
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npx prisma migrate dev
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+(Optional) Open Prisma Studio:
+```bash
+npx prisma studio
+```
 
-## Resources
+### Environment Variables
+Create a `.env` file in the repository root (do not commit it):
 
-Check out a few resources that may come in handy when working with NestJS:
+```env
+# Database
+DATABASE_URL="postgresql://postgres:YOUR_PASSWORD@localhost:5432/civiclink?schema=public"
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+# JWT
+JWT_SECRET="change-me"
+JWT_EXPIRES_IN="1d"
 
-## Support
+# App
+NODE_ENV="development"
+```
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+Notes:
+- If your DB password contains special characters (`@`, `:`, `#`, `/`), URL-encode them in `DATABASE_URL`.
 
-## Stay in touch
+### Run the app (development)
+```bash
+npm run start:dev
+```
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+---
 
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+## Development Notes
+- Keep changes feature-scoped and incremental (small commits/PRs).
+- Use DTO validation consistently (`class-validator` + `class-transformer`).
+- Prefer controller-level authorization using:
+  - `JwtAuthGuard` for authentication
+  - `RolesGuard` + `@Roles(...)` for RBAC enforcement
+- Avoid logging secrets (never log full `process.env`).
+- Maintain consistent pagination conventions (`page`, `pageSize`) and return metadata (`total`, `totalPages`).
